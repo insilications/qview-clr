@@ -13,13 +13,15 @@
 #include <QApplication>
 #include <QRegularExpression>
 
+#include <qtsingleapplication.h>
+
 #if defined(qvApp)
 #undef qvApp
 #endif
 
 #define qvApp (qobject_cast<QVApplication *>(QCoreApplication::instance()))	// global qvapplication object
 
-class QVApplication : public QApplication
+class QVApplication : public QtSingleApplication
 {
     Q_OBJECT
 
@@ -76,6 +78,10 @@ public:
     ShortcutManager &getShortcutManager() { return shortcutManager; }
 
     ActionManager &getActionManager() { return actionManager; }
+
+public slots:
+    void openFileF(const QString &file);
+    QString openDBus(const QString &file);
 
 private:
 

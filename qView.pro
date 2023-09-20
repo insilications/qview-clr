@@ -1,9 +1,11 @@
 TARGET = qView
 VERSION = 6.1
 
-QT += core gui network widgets
+QT += core gui network widgets dbus
 
 TEMPLATE = app
+
+include(/insilications/Downloads/compile/qt-solutions/qtsingleapplication/src/qtsingleapplication.pri)
 
 # allows use of version variable elsewhere
 DEFINES += "VERSION=$$VERSION"

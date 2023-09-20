@@ -8,7 +8,12 @@
 #include <QTimer>
 #include <QFileDialog>
 
-QVApplication::QVApplication(int &argc, char **argv) : QApplication(argc, argv)
+#include <QDBusConnection>
+#include <QDBusError>
+#define SERVICE_NAME "org.qview.dbus"
+
+// QVApplication::QVApplication(int &argc, char **argv) : QApplication(argc, argv)
+QVApplication::QVApplication(int &argc, char **argv) : QtSingleApplication(argc, argv)
 {
     setDesktopFileName("com.interversehq.qView.desktop");
 
@@ -66,6 +71,22 @@ QVApplication::QVApplication(int &argc, char **argv) : QApplication(argc, argv)
         setAttribute(Qt::AA_DontShowIconsInMenus);
 
     hideIncompatibleActions();
+
+    auto connection = QDBusConnection::sessionBus();
+
+    if (!connection.isConnected()) {
+        qWarning("Cannot connect to the D-Bus session bus.\n"
+                 "To start it, run:\n"
+                 "\teval `dbus-launch --auto-syntax`\n");
+        exit(1);
+    }
+
+    if (!connection.registerService(SERVICE_NAME)) {
+        qWarning("%s\n", qPrintable(connection.lastError().message()));
+        exit(1);
+    }
+
+    connection.registerObject("/", this, QDBusConnection::ExportAllSlots);
 }
 
 QVApplication::~QVApplication()
@@ -87,13 +108,35 @@ bool QVApplication::event(QEvent *event)
         if (stateEvent->applicationState() == Qt::ApplicationActive)
             settingsManager.loadSettings();
     }
-    return QApplication::event(event);
+    return QtSingleApplication::event(event);
 }
 
 void QVApplication::openFile(MainWindow *window, const QString &file, bool resize)
 {
     window->setJustLaunchedWithImage(resize);
     window->openFile(file);
+}
+
+QString QVApplication::openDBus(const QString &file)
+{
+    // QMetaObject::invokeMethod(QCoreApplication::instance(), &QCoreApplication::quit);
+    // return QString("ping(\"%1\") got called").arg(arg);
+    auto *window = qvApp->getMainWindow(false);
+    window->openFile(file);
+    // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+}
+
+void QVApplication::openFileF(const QString &file)
+{
+    // MainWindow *window = getMainWindow(true);
+    // window->setJustLaunchedWithImage(true);
+    // window->openFile(file);
+
+    auto *window = qvApp->getMainWindow(false);
+    // window->setJustLaunchedWithImage(true);
+    window->openFile(file);
+    // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+    // QVApplication::openFile(window, file, true);
 }
 
 void QVApplication::openFile(const QString &file, bool resize)
@@ -139,8 +182,11 @@ void QVApplication::pickFile(MainWindow *parent)
 MainWindow *QVApplication::newWindow()
 {
     auto *w = new MainWindow();
+    w->setAttribute(Qt::WA_ShowWithoutActivating);
     w->show();
-    w->raise();
+    // w->raise();
+    // w->setWindowFlags(Qt::WindowDoesNotAcceptFocus);
+
 
     return w;
 }
@@ -168,7 +214,7 @@ MainWindow *QVApplication::getMainWindow(bool shouldBeEmpty)
     }
 
     // If none of those are valid, scan the list for any existing MainWindow
-    const auto topLevelWidgets = QApplication::topLevelWidgets();
+    const auto topLevelWidgets = QtSingleApplication::topLevelWidgets();
     for (const auto &widget : topLevelWidgets)
     {
         if (auto *window = qobject_cast<MainWindow*>(widget))

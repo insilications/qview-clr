@@ -18,8 +18,28 @@ int main(int argc, char *argv[])
     parser.process(app);
 
     auto *window = QVApplication::newWindow();
-    if (!parser.positionalArguments().isEmpty())
-        QVApplication::openFile(window, parser.positionalArguments().constFirst(), true);
-
+    // window->setWindowFlags((window->windowFlags()) & Qt::WindowDoesNotAcceptFocus);
+    // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+    // app.setActivationWindow(window, false);
+    if (!parser.positionalArguments().isEmpty()) {
+        // QVApplication::openFile(window, parser.positionalArguments().constFirst(), true);
+        if (app.sendMessage(parser.positionalArguments().constFirst())) {
+            // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+            // window->setWindowFlags((window->windowFlags()) & Qt::WindowStaysOnBottomHint & Qt::FramelessWindowHint);
+            return 0;
+        } else {
+            QVApplication::openFile(window, parser.positionalArguments().constFirst(), true);
+            // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+            // window->setWindowFlags(Qt::WindowDoesNotAcceptFocus);
+            // Qt::WindowStaysOnBottomHint
+        }
+    } else {
+        if (app.sendMessage("k")) {
+            return 0;
+        }
+    }
+    // window->setWindowState((window->windowState()) & ~Qt::WindowActive);
+    // QObject::connect(&app, SIGNAL(messageReceived(const QString&)), window, SLOT(openFileF(const QString&)));
+    QObject::connect(&app, &QVApplication::messageReceived, &app, &QVApplication::openFileF);
     return QApplication::exec();
 }
